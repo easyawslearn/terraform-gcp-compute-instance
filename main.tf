@@ -1,3 +1,9 @@
+provider "google" {
+  project     = "hn2021"
+  region      = "us-west1"
+  zone        = "us-west1-b"
+}
+
 #########
 # Locals
 #########
@@ -31,8 +37,8 @@ locals {
 ####################
 # Instance Template
 ####################
-resource "google_compute_instance" "tpl" {
-  name_prefix             = var.name
+resource "google_compute_instance" "default" {
+  name             = var.name
   project                 = var.project_id
   machine_type            = var.machine_type
   labels                  = var.labels
@@ -41,28 +47,24 @@ resource "google_compute_instance" "tpl" {
   can_ip_forward          = var.can_ip_forward
   metadata_startup_script = var.startup_script
   min_cpu_platform        = var.min_cpu_platform
+ 
   dynamic "boot_disk" {
     for_each = local.all_disks
     content {
-      auto_delete  = lookup(disk.value, "auto_delete", null)
-      boot         = lookup(disk.value, "boot", null)
-      device_name  = lookup(disk.value, "device_name", null)
-      disk_name    = lookup(disk.value, "disk_name", null)
-      disk_size_gb = lookup(disk.value, "disk_size_gb", lookup(disk.value, "disk_type", null) == "local-ssd" ? "375" : null)
-      disk_type    = lookup(disk.value, "disk_type", null)
-      interface    = lookup(disk.value, "interface", lookup(disk.value, "disk_type", null) == "local-ssd" ? "NVME" : null)
-      mode         = lookup(disk.value, "mode", null)
-      source       = lookup(disk.value, "source", null)
-      source_image = lookup(disk.value, "source_image", null)
-      type         = lookup(disk.value, "disk_type", null) == "local-ssd" ? "SCRATCH" : "PERSISTENT"
-      labels       = lookup(disk.value, "disk_labels", null)
+      auto_delete  = lookup(boot_disk.value, "auto_delete", null)
+      device_name  = lookup(boot_disk.value, "device_name", null)
+      mode         = lookup(boot_disk.value, "mode", null)
 
-      dynamic "disk_encryption_key" {
-        for_each = compact([var.disk_encryption_key == null ? null : 1])
+
+       dynamic "initialize_params" {
+        for_each = var.initialize_params
         content {
-          kms_key_self_link = var.disk_encryption_key
+          size       = initialize_params.value.size
+          type       = initialize_params.value.type
+          image       =initialize_params.value.image
         }
       }
+
     }
   }
 
@@ -88,22 +90,22 @@ resource "google_compute_instance" "tpl" {
     }
   }
 
-  dynamic "network_interface" {
-    for_each = var.additional_networks
-    content {
-      network            = network_interface.value.network
-      subnetwork         = network_interface.value.subnetwork
-      subnetwork_project = network_interface.value.subnetwork_project
-      network_ip         = length(network_interface.value.network_ip) > 0 ? network_interface.value.network_ip : null
-      dynamic "access_config" {
-        for_each = network_interface.value.access_config
-        content {
-          nat_ip       = access_config.value.nat_ip
-          network_tier = access_config.value.network_tier
-        }
-      }
-    }
-  }
+  # dynamic "network_interface" {
+  #   for_each = var.additional_networks
+  #   content {
+  #     network            = network_interface.value.network
+  #     subnetwork         = network_interface.value.subnetwork
+  #     subnetwork_project = network_interface.value.subnetwork_project
+  #     network_ip         = length(network_interface.value.network_ip) > 0 ? network_interface.value.network_ip : null
+  #     dynamic "access_config" {
+  #       for_each = network_interface.value.access_config
+  #       content {
+  #         nat_ip       = access_config.value.nat_ip
+  #         network_tier = access_config.value.network_tier
+  #       }
+  #     }
+  #   }
+  # }
 
 
 
@@ -134,4 +136,18 @@ resource "google_compute_instance" "tpl" {
       count = guest_accelerator.value.count
     }
   }
+}
+
+resource "google_service_account" "sa" {
+  account_id   = "my-service-account"
+  display_name = "A service account that only Jane can use"
+}
+
+resource "google_service_account_iam_binding" "admin-account-iam" {
+  service_account_id = google_service_account.sa.name
+  role               = "roles/iam.serviceAccountUser"
+
+  members = [
+    "user:vjpatel8500@gmail.com",
+  ]
 }

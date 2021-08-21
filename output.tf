@@ -1,14 +1,16 @@
-output "self_link" {
-  description = "Self-link of instance template"
-  value       = google_compute_instance_template.tpl.self_link
+output "id" {
+  description = "an identifier for the resource with format"
+  value       = google_compute_instance.default.id
 }
 
-output "name" {
-  description = "Name of instance template"
-  value       = google_compute_instance_template.tpl.name
+output "instance_id" {
+  description = " The server-assigned unique identifier of this instance."
+  value       = google_compute_instance.default.instance_id
 }
 
-output "tags" {
-  description = "Tags that will be associated with instance(s)"
-  value       = google_compute_instance_template.tpl.tags
+
+
+output "metadata_fingerprint" {
+  description = " The metadata_fingerprint identifier of this instance."
+  value       = google_compute_instance.default.metadata_fingerprint
 }

@@ -4,14 +4,14 @@ variable "project_id" {
   default     = null
 }
 
-variable "name_prefix" {
-  description = "Name prefix for the instance template"
-  default     = "default-instance-template"
+variable "name" {
+  description = "A unique name for the resource, required by GCE. Changing this forces a new resource to be created."
+  default     = "default-instance-vijay-demo"
 }
 
 variable "machine_type" {
   description = "Machine type to create, e.g. n1-standard-1"
-  default     = "n1-standard-1"
+  default     = "e2-micro"
 }
 
 variable "min_cpu_platform" {
@@ -52,7 +52,7 @@ variable "on_host_maintenance" {
 variable "region" {
   type        = string
   description = "Region where the instance template should be created."
-  default     = null
+  default     = "us-west1"
 }
 
 #######
@@ -114,12 +114,31 @@ variable "additional_disks" {
   default = []
 }
 
+
+variable "initialize_params" {
+  description = "List of maps of additional disks. See https://www.terraform.io/docs/providers/google/r/compute_instance_template.html#disk_name"
+  type = list(object({
+    size    : string
+    type  : string
+    image  : string
+  }))
+
+
+  default = [{
+    size    : "20"
+    type  : "pd-standard"
+    image  : "debian-cloud/debian-9"
+  }
+  ]
+
+} 
+
 ####################
 # network_interface
 ####################
 variable "network" {
   description = "The name or self_link of the network to attach this interface to. Use network attribute for Legacy or Auto subnetted networks and subnetwork for custom subnetted networks."
-  default     = ""
+  default     = "default"
 }
 
 variable "subnetwork" {
@@ -177,6 +196,10 @@ variable "service_account" {
     scopes = set(string)
   })
   description = "Service account to attach to the instance. See https://www.terraform.io/docs/providers/google/r/compute_instance_template.html#service_account."
+  default = {
+    email = "my-service-account@hn2021.iam.gserviceaccount.com"
+    scopes = [ "cloud-platform" ]
+  }
 }
 
 ###########################
